@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref, reactive} from "vue";
+import {ref, reactive, computed} from "vue";
 import {EditPen, Lock, Message} from "@element-plus/icons-vue";
 import router from "@/router";
 import {ElMessage} from "element-plus";
@@ -44,7 +44,7 @@ const rules = {
 }
 
 const askCode = () => {
-  if (isEmailValid) {
+  if (isEmailValid.value) {
     coldTime.value = 60
     get(`/auth/ask-code?email=${form.email}&type=reset`, () => {
       ElMessage.success(`验证码已发送到邮箱: ${form.email}，请注意查收`)
@@ -89,24 +89,21 @@ const doReset = () => {
 </script>
 
 <template>
-  <div class="w-full h-full">
-    <div class="flex justify-center items-center mt-[30%]">
-      <img src="@/assets/elm.svg" class="w-[70%]" alt="">
-    </div>
-    <div class="mt-[10vw] ml-[6vw] mr-[6vw] text-center">
-      <div class="mt-[1vw]">
-        <el-steps :active="active" finish-status="success" align-center>
+  <div class="page-flex">
+    <div class="left-blank"></div>
+    <div class="right-reset">
+      <el-card class="reset-card">
+        <div class="reset-logo">
+          <img src="@/assets/elm.svg" alt="logo" />
+        </div>
+        <div class="reset-title">重置密码</div>
+        <el-steps :active="active" finish-status="success" align-center class="reset-steps">
           <el-step title="验证电子邮件"/>
           <el-step title="重新设定密码"/>
         </el-steps>
-      </div>
-      <div v-if="active === 0" class="my-0 mx-2vw">
-        <div class="mt-[5vw]">
-          <div class="text-3xl font-semibold">重置密码</div>
-          <div class="text-[1em] mt-[8px] text-gray-500">请输入需要重置密码的电子邮件地址</div>
-        </div>
-        <div class="mt-[5vw]">
-          <el-form :model="form" :rules="rules" ref="formRef">
+        <div v-if="active === 0">
+          <div class="reset-subtitle">请输入需要重置密码的电子邮件地址</div>
+          <el-form :model="form" :rules="rules" ref="formRef" class="reset-form">
             <el-form-item prop="email">
               <el-input v-model="form.email" type="email" placeholder="电子邮件地址">
                 <template #prefix>
@@ -127,26 +124,21 @@ const doReset = () => {
                     </template>
                   </el-input>
                 </el-col>
-                <el-col :span="6">
-                  <el-button @click="askCode" :disabled="!isEmailValid || coldTime > 0" type="success">
+                <el-col :span="8">
+                  <el-button @click="askCode" :disabled="!isEmailValid || coldTime > 0" type="success" class="code-btn">
                     {{ coldTime > 0 ? `请稍后 ${coldTime} 秒` : '获取验证码' }}
                   </el-button>
                 </el-col>
               </el-row>
             </el-form-item>
+            <el-form-item>
+              <el-button @click="confirmReset" type="warning" plain class="reset-btn">开始重置密码</el-button>
+            </el-form-item>
           </el-form>
         </div>
-        <div class="my-[3vw]] mx-0">
-          <el-button @click="confirmReset" type="warning" plain class="w-[80vw]">开始重置密码</el-button>
-        </div>
-      </div>
-      <div v-if="active === 1" class="my-0 mx-2vw">
-        <div class="mt-[5vw]">
-          <div class="text-3xl font-semibold">重置密码</div>
-          <div class="text-[1em] mt-[8px] text-gray-500">请填写你的新密码，并牢记防止丢失</div>
-        </div>
-        <div class="mt-[5vw]">
-          <el-form :model="form" :rules="rules" ref="formRef">
+        <div v-if="active === 1">
+          <div class="reset-subtitle">请填写你的新密码，并牢记防止丢失</div>
+          <el-form :model="form" :rules="rules" ref="formRef" class="reset-form">
             <el-form-item prop="password">
               <el-input v-model="form.password" maxlength="20" type="password" placeholder="密码">
                 <template #prefix>
@@ -165,16 +157,95 @@ const doReset = () => {
                 </template>
               </el-input>
             </el-form-item>
+            <el-form-item>
+              <el-button @click="doReset" type="danger" plain class="reset-btn">立即重置密码</el-button>
+            </el-form-item>
           </el-form>
         </div>
-        <div class="my-[3vw]] mx-0">
-          <el-button @click="doReset" type="danger" plain class="w-[80vw]">立即重置密码</el-button>
+        <div class="reset-footer">
+          <span class="footer-text">已有账号?</span>
+          <el-link @click="router.push('/login')" type="primary" class="footer-link">立即登录</el-link>
         </div>
-      </div>
+      </el-card>
     </div>
   </div>
 </template>
 
 <style scoped>
-
+.page-flex {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+.left-blank {
+  flex: 1;
+}
+.right-reset {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 420px;
+}
+.reset-card {
+  width: 400px;
+  padding: 40px 32px 32px 32px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.08);
+  background: #fff;
+}
+.reset-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.reset-logo img {
+  width: 80px;
+  height: 80px;
+}
+.reset-title {
+  font-size: 26px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 18px;
+  color: #333;
+}
+.reset-steps {
+  margin-bottom: 18px;
+}
+.reset-subtitle {
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+  margin-bottom: 18px;
+}
+.reset-form {
+  margin-bottom: 0;
+}
+.reset-btn {
+  width: 294px;
+  display: block;
+  margin: 0 auto 16px auto;
+  font-size: 16px;
+}
+.code-btn {
+  width: 100%;
+  min-width: 90px;
+}
+.reset-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+}
+.footer-text {
+  color: #888;
+  font-size: 15px;
+}
+.footer-link {
+  margin-left: 8px;
+  font-size: 15px;
+}
 </style>

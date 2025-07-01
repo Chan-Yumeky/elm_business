@@ -14,7 +14,7 @@ import 'element-plus/dist/index.css'
 
 import axios from "axios";
 
-axios.defaults.baseURL = "http://localhost:8088";
+axios.defaults.baseURL = "http://localhost";
 
 const app = createApp(App)
 

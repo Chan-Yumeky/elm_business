@@ -1,106 +1,121 @@
-import axios from "axios";
-import {ElMessage} from "element-plus";
+import axios, { AxiosError } from "axios";
+import { ElMessage } from "element-plus";
 
-const authItemName = "access_token"
+// 定义变量类型
+const authItemName = "access_token";
 
-const defaultError = (error) => {
-    console.error(error)
-    ElMessage.error('发生了一些错误，请联系管理员')
+// 默认错误处理函数，添加参数类型
+const defaultError = (error: AxiosError): void => {
+    console.error(error);
+    ElMessage.error('发生了一些错误，请联系管理员');
 }
 
-const defaultFailure = (message, status, url) => {
-    console.warn(`请求地址: ${url}, 状态码: ${status}, 错误信息: ${message}`)
-    ElMessage.warning(message)
+// 默认失败处理函数，添加参数类型
+const defaultFailure = (message: string, status: number, url: string): void => {
+    console.warn(`请求地址: ${url}, 状态码: ${status}, 错误信息: ${message}`);
+    ElMessage.warning(message);
 }
 
-function takeAccessToken() {
+// 获取访问令牌
+function takeAccessToken(): string | null {
     const str = localStorage.getItem(authItemName) || sessionStorage.getItem(authItemName);
-    if (!str) return null
-    const authObj = JSON.parse(str)
+    if (!str) return null;
+    const authObj = JSON.parse(str);
     if (authObj.expire <= new Date()) {
-        deleteAccessToken()
-        ElMessage.warning("登录状态已过期，请重新登录！")
-        return null
+        deleteAccessToken();
+        ElMessage.warning("登录状态已过期，请重新登录！");
+        return null;
     }
-    return authObj.token
+    return authObj.token;
 }
 
-function storeAccessToken(remember, token, expire, username, id) {
+// 存储访问令牌
+function storeAccessToken(remember: boolean, token: string, expire: string, username: string, id: string): void {
     const authObj = {
         token: token,
         expire: expire,
         username: username,
         id: id,
+    };
+    const str = JSON.stringify(authObj);
+    if (remember) {
+        localStorage.setItem(authItemName, str);
+    } else {
+        sessionStorage.setItem(authItemName, str);
     }
-    const str = JSON.stringify(authObj)
-    if (remember)
-        localStorage.setItem(authItemName, str)
-    else
-        sessionStorage.setItem(authItemName, str)
 }
 
-function deleteAccessToken() {
-    localStorage.removeItem(authItemName)
-    sessionStorage.removeItem(authItemName)
+// 删除访问令牌
+function deleteAccessToken(): void {
+    localStorage.removeItem(authItemName);
+    sessionStorage.removeItem(authItemName);
 }
 
-function accessHeader() {
+// 设置请求头
+function accessHeader(): Record<string, string> {
     const token = takeAccessToken();
     return token ? {
         'Authorization': `Bearer ${takeAccessToken()}`
-    } : {}
+    } : {};
 }
 
-function internalPost(url, data, headers, success, failure, error = defaultError) {
-    axios.post(url, data, {headers: headers}).then(({data}) => {
+// 内部 POST 请求
+function internalPost(url: string, data: any, headers: Record<string, string>, success: Function, failure: Function, error: Function = defaultError): void {
+    axios.post(url, data, { headers: headers }).then(({ data }) => {
         if (data.code === 200)
-            success(data.data)
+            success(data.data);
         else
-            failure(data.message, data.code, url)
-    }).catch(err => error(err))
+            failure(data.message, data.code, url);
+    }).catch((err: AxiosError) => error(err));
 }
 
-function internalGet(url, headers, success, failure, error = defaultError) {
-    axios.get(url, {headers: headers}).then(({data}) => {
+// 内部 GET 请求
+function internalGet(url: string, headers: Record<string, string>, success: Function, failure: Function, error: Function = defaultError): void {
+    axios.get(url, { headers: headers }).then(({ data }) => {
         if (data.code === 200)
-            success(data.data)
+            success(data.data);
         else
-            failure(data.message, data.code, url)
-    }).catch(err => error(err))
+            failure(data.message, data.code, url);
+    }).catch((err: AxiosError) => error(err));
 }
 
-function get(url, success, failure = defaultFailure) {
-    internalGet(url, accessHeader(), success, failure)
+// GET 请求
+function get(url: string, success: Function, failure: Function = defaultFailure): void {
+    internalGet(url, accessHeader(), success, failure);
 }
 
-function post(url, data, success, failure = defaultFailure) {
-    internalPost(url, data, accessHeader(), success, failure)
+// POST 请求
+function post(url: string, data: any, success: Function, failure: Function = defaultFailure): void {
+    internalPost(url, data, accessHeader(), success, failure);
 }
 
-function login(username, password, remember, success, failure = defaultFailure) {
+// 登录功能
+function login(username: string, password: string, remember: boolean, success: Function, failure: Function = defaultFailure): void {
     internalPost('/auth/login', {
         username: username,
         password: password
     }, {
         // security只支持表单提交，而默认是JSON
         'Content-Type': 'application/x-www-form-urlencoded'
-    }, (data) => {
-        storeAccessToken(remember, data.token, data.expire, data.username, data.id)
-        ElMessage.success(`欢迎 ${data.username} ~`)
-        success(data)
-    }, failure)
+    }, (data: any) => {
+        storeAccessToken(remember, data.token, data.expire, data.username, data.id);
+        ElMessage.success(`欢迎 ${data.username} ~`);
+        success(data);
+    }, failure);
 }
 
-function logout(success, failure = defaultFailure) {
+// 登出功能
+function logout(success: Function, failure: Function = defaultFailure): void {
     get('/auth/logout', () => {
-        deleteAccessToken()
-        ElMessage.success('欢迎您再次使用')
-        success()
-    }, failure)
+        deleteAccessToken();
+        ElMessage.success('欢迎您再次使用');
+        success();
+    }, failure);
 }
 
-function unauthorized() {
-    return !takeAccessToken()
+// 判断是否未授权
+function unauthorized(): boolean {
+    return !takeAccessToken();
 }
 
-export {login, logout, get, post, unauthorized}
+export { login, logout, get, post, unauthorized };
